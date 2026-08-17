@@ -1,0 +1,17 @@
+{
+  "name": "dsh-go-stock",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "GO_STOCK_MCP.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

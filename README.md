@@ -1,3 +1,187 @@
+# go-stock MCP Server for DeepSeek Harness
+
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![Go](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go)](go.mod)
+[![MCP](https://img.shields.io/badge/Protocol-MCP-7C3AED)](https://modelcontextprotocol.io/)
+[![GitHub Release](https://img.shields.io/github/v/release/WJS-WEB/go-stock-mcp)](https://github.com/WJS-WEB/go-stock-mcp/releases)
+
+把 [go-stock](https://github.com/ArvinLovegood/go-stock) 的股票行情、K 线、
+财务、资金流、新闻和研报能力，以只读 stdio MCP Server 的形式提供给
+[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 及其他 MCP Client。
+
+> 本项目只提供数据查询和研究辅助，不构成任何投资建议。行情和第三方接口
+> 可能存在延迟、缺失或不可用情况，请勿将返回结果直接用于自动实盘交易。
+
+## 主要特性
+
+- 复用 go-stock 已有数据工具，不重复实现行情接口。
+- SQLite 数据库以 `mode=ro` 打开，不执行迁移和后台清理。
+- stdout 仅用于 MCP JSON-RPC，所有日志写入 stderr。
+- 内置 DeepSeek Harness Bundle，可从 GitHub 直接安装。
+- GitHub Releases 提供多平台二进制文件和 SHA-256 校验和。
+- 第一版只开放 14 个经过筛选的只读工具。
+
+## MCP 工具
+
+| 工具 | 说明 |
+| --- | --- |
+| `search_stock` | 按股票名称、代码或拼音查询股票与指数 |
+| `search_stock_news` | 按关键词查询市场新闻 |
+| `list_industries` | 查询行业和板块代码 |
+| `get_stock_info` | 获取股票实时行情和基本信息 |
+| `get_stock_kline` | 获取日 K 线数据 |
+| `get_stock_minute_data` | 获取当日分钟级行情 |
+| `get_stock_financial_info` | 获取股票财务信息 |
+| `get_stock_money_data` | 获取股票资金流排名 |
+| `get_market_data` | 获取指数、涨跌分布和市场概览 |
+| `get_industry_money_rank` | 获取行业资金流排名 |
+| `get_fund_info` | 获取基金净值、涨跌幅和评级 |
+| `get_invest_calendar` | 获取财报、股东大会、IPO 等投资日历 |
+| `search_reports` | 搜索研究报告、评级和目标价 |
+| `is_trading_day` | 判断指定日期是否为 A 股交易日 |
+
+在 DeepSeek Harness 中，工具名称会带上命名空间，例如：
+
+```text
+mcp__go-stock__get_stock_info
+mcp__go-stock__get_stock_kline
+```
+
+## 安装前准备
+
+公开仓库不会上传任何用户数据库、API Key、Cookie 或 Token。使用前需要：
+
+1. 安装 DeepSeek Harness。
+2. 从 [Releases](https://github.com/WJS-WEB/go-stock-mcp/releases) 下载对应平台的 `go-stock-mcp`。
+3. 准备自己的 `stock.db`。可以安装并运行一次上游 go-stock，然后使用其 `data/stock.db`。
+
+可执行文件名称：
+
+| 平台 | Release 文件 |
+| --- | --- |
+| Windows x64 | `go-stock-mcp-windows-amd64.exe` |
+| Linux x64 | `go-stock-mcp-linux-amd64` |
+| macOS Apple Silicon | `go-stock-mcp-darwin-arm64` |
+
+下载后请根据 Release 中的 `SHA256SUMS` 校验文件完整性。
+
+## 使用 DeepSeek Harness 安装
+
+### Windows PowerShell
+
+```powershell
+$env:GO_STOCK_MCP_COMMAND = 'C:\Tools\go-stock-mcp-windows-amd64.exe'
+$env:GO_STOCK_DB_PATH = 'C:\path\to\go-stock\data\stock.db'
+$env:GO_STOCK_ROOT = 'C:\path\to\go-stock'
+
+dsh plugin --profile demo add github:WJS-WEB/go-stock-mcp
+dsh --profile demo
+```
+
+### Linux / macOS
+
+```bash
+chmod +x "$HOME/.local/bin/go-stock-mcp"
+export GO_STOCK_MCP_COMMAND="$HOME/.local/bin/go-stock-mcp"
+export GO_STOCK_DB_PATH="$HOME/path/to/go-stock/data/stock.db"
+export GO_STOCK_ROOT="$HOME/path/to/go-stock"
+
+dsh plugin --profile demo add github:WJS-WEB/go-stock-mcp
+dsh --profile demo
+```
+
+`dsh plugin add` 安装的是 Harness Bundle，不会自动下载本机平台的 Go
+可执行文件，因此需要先完成上面的 Release 安装和环境变量配置。
+
+## 提问示例
+
+```text
+请使用 go-stock 工具查询贵州茅台的股票代码和最新行情。
+
+获取 600519 最近 30 个交易日的日 K 线，并总结价格趋势。
+
+查询今天的市场涨跌分布和行业资金流排名。
+
+搜索近期关于人工智能行业的研究报告。
+```
+
+## 在其他 MCP Client 中使用
+
+任何支持 stdio MCP 的客户端都可以直接启动二进制文件。例如：
+
+```json
+{
+  "mcpServers": {
+    "go-stock": {
+      "command": "C:/Tools/go-stock-mcp-windows-amd64.exe",
+      "args": [],
+      "env": {
+        "GO_STOCK_DB_PATH": "C:/path/to/go-stock/data/stock.db"
+      }
+    }
+  }
+}
+```
+
+## 从源码构建
+
+需要 Go 1.26 或 `go.mod` 指定的兼容版本：
+
+```bash
+git clone https://github.com/WJS-WEB/go-stock-mcp.git
+cd go-stock-mcp
+go test ./cmd/go-stock-mcp
+go build -trimpath -o build/go-stock-mcp ./cmd/go-stock-mcp
+```
+
+Windows 可以将输出文件改为：
+
+```powershell
+go build -trimpath -o build\go-stock-mcp.exe ./cmd/go-stock-mcp
+```
+
+## 故障排查
+
+### `executable not found`
+
+确认 `GO_STOCK_MCP_COMMAND` 是存在的绝对路径，或者将二进制文件加入 `PATH`。
+
+### `database initialization failed`
+
+确认 `GO_STOCK_DB_PATH` 指向真实的 `stock.db` 文件，并且当前用户有读取权限。
+数据库不会随仓库或 Release 发布，因为它可能包含用户的关注列表、历史分析和本地配置。
+
+### 直接运行后没有交互界面
+
+这是正常现象。stdio MCP Server 需要由 Harness、MCP Inspector 或其他 MCP
+Client 通过 stdin 发送 JSON-RPC 请求，不是普通交互式命令行程序。
+
+### 部分行情工具返回失败
+
+部分工具依赖第三方公开数据接口，可能受网络、频率限制、接口变更或地区限制影响。
+
+## 安全边界
+
+当前版本不开放以下高风险能力：
+
+- 创建、修改或删除股票分组和概念；
+- 写入交易记录、操作计划或提示词；
+- 设置交易价格；
+- 发送钉钉或飞书消息；
+- 创建、更新或删除 MCP Server 配置。
+
+## 项目来源与许可证
+
+本项目基于 [ArvinLovegood/go-stock](https://github.com/ArvinLovegood/go-stock)
+开发，并保留原项目的 GPL-3.0 许可证。MCP-Go 和 DeepSeek Harness 分别遵循
+其各自仓库中的许可证。
+
+更详细的 MCP 构建和 Bundle 配置请参阅 [GO_STOCK_MCP.md](GO_STOCK_MCP.md)。
+
+---
+
+## 上游 go-stock 项目说明
+
 # go-stock : 基于大语言模型的AI赋能股票分析工具
 ## ![go-stock](./build/appicon.png)
 ![GitHub Release](https://img.shields.io/github/v/release/ArvinLovegood/go-stock?link=https%3A%2F%2Fgithub.com%2FArvinLovegood%2Fgo-stock%2Freleases&link=https%3A%2F%2Fgithub.com%2FArvinLovegood%2Fgo-stock%2Freleases)

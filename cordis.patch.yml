@@ -1,0 +1,18 @@
+- insert:
+    - id: go-stock-mcp
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: go-stock
+        transport: stdio
+        command: !!js process.env.GO_STOCK_MCP_COMMAND ?? 'go-stock-mcp'
+        args: []
+        env:
+          GO_STOCK_DB_PATH: !!js process.env.GO_STOCK_DB_PATH ?? 'data/stock.db'
+        cwd: !!js process.env.GO_STOCK_ROOT ?? process.cwd()
+        toolCallTimeoutMs: 30000
+        failOnStartupError: true
+        reconnect:
+          enabled: true
+          initialDelayMs: 500
+          maxDelayMs: 30000
+          maxAttempts: 10
